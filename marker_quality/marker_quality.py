@@ -22,7 +22,7 @@ ARUCO_PARAMS = cv2.aruco.DetectorParameters()
 # Build path to camera calibration file relative to this script's location
 script_dir = os.path.dirname(os.path.abspath(__file__))
 server_dir = os.path.dirname(script_dir) # Go up one level from utils
-CAMERA_CALIBRATION_FILE = os.path.join(server_dir, '../aruco_server', 'camera_ext.json')
+CAMERA_CALIBRATION_FILE = os.path.join(server_dir, '../', 'camera_ext.json')
 OUTPUT_JSON_FILE = os.path.join(script_dir, 'marker_test.json') # Save JSON in the same dir as script
 MARKER_ANALYSIS_FILE = os.path.join(script_dir, 'marker_quality_test.md') # Save analysis results to a markdown file
 
