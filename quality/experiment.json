@@ -1,0 +1,17 @@
+{
+    "camera_height_mm": 405,
+
+    "frame_width": 640,
+    "frame_height": 480,
+
+    "grid_step_mm": 40,
+
+    "grid_width_mm": 240,
+    "grid_height_mm": 160,
+
+    "captures_per_point": 100,
+
+    "target_radius_px": 4,
+
+    "aruco_dictionary": "DICT_4X4_1000"
+}
