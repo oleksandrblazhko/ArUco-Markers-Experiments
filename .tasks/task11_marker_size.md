@@ -1,4 +1,4 @@
-Було проведно серію експериментів якості розпізнавання маркерів різного розміру: 
+Було проведено серію експериментів якості розпізнавання маркерів різного розміру: 
 - 7 мм - marker_quality\marker_detect_rate_s07mm_best_final.json
 - 9 мм - marker_quality\marker_detect_rate_s08mm_best_final.json
 - 10 мм - marker_quality\marker_detect_rate_s10mm_best_final.json
