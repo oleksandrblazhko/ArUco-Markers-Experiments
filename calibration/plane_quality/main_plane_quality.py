@@ -9,26 +9,15 @@ from plane_quality_analyzer import PlaneQualityAnalyzer
 from plane_quality_report import PlaneQualityReport
 from plane_quality_heatmap import PlaneQualityHeatmap
 
+from camera import Camera
 import config
-
-# =========================================================
-# CONFIG
-# =========================================================
-
-CAMERA_ID = 0
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 480
-
-ARUCO_DICT = cv2.aruco.DICT_4X4_50
 
 
 # =========================================================
 # REAL WORLD LAYOUT (mm)
-# ОБОВ'ЯЗКОВО адаптуй під свою дошку
 # =========================================================
 
 MARKER_LAYOUT_MM = {
-    # marker_id : (x_mm, y_mm)
     0: (0.0, 0.0),
     1: (50.0, 0.0),
     2: (100.0, 0.0),
@@ -110,7 +99,6 @@ def pixel_to_world(pt, H):
         return 0.0, 0.0
 
     p = np.array([[pt[0], pt[1]]], dtype=np.float32)
-
     w = cv2.perspectiveTransform(np.array([p]), H)
 
     return float(w[0][0][0]), float(w[0][0][1])
@@ -122,22 +110,18 @@ def pixel_to_world(pt, H):
 
 def main():
 
-    cap = cv2.VideoCapture(CAMERA_ID)
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-
-    if not cap.isOpened():
-        print("Camera not available")
-        return
+    # ---------------- Camera (NEW) ----------------
+    camera = Camera(
+        cam_id=config.CAMERA_ID,
+        width=config.FRAME_WIDTH,
+        height=config.FRAME_HEIGHT
+    )
 
     # ---------------- Detector ----------------
-
-    dictionary = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
+    dictionary = cv2.aruco.getPredefinedDictionary(config.ARUCO_DICT)
     detector = cv2.aruco.ArucoDetector(dictionary)
 
     # ---------------- Pipeline ----------------
-
     collector = PlaneQualityCollector()
     analyzer = PlaneQualityAnalyzer()
     reporter = PlaneQualityReport()
@@ -154,7 +138,7 @@ def main():
 
     while True:
 
-        ok, frame = cap.read()
+        ok, frame = camera.read()
         if not ok:
             break
 
@@ -197,19 +181,10 @@ def main():
                 y2 = min(frame.shape[0] - 1, y2)
 
                 sharp = compute_sharpness(gray, x1, y1, x2, y2)
-
                 size_px = marker_size_px(corners)
 
-                frame_center = (
-                    frame.shape[1] // 2,
-                    frame.shape[0] // 2
-                )
-
+                frame_center = (frame.shape[1] // 2, frame.shape[0] // 2)
                 dist_center = distance((cx, cy), frame_center)
-
-                # -------------------------------------------------
-                # REAL WORLD COORDINATES
-                # -------------------------------------------------
 
                 world_x, world_y = pixel_to_world((cx, cy), H)
 
@@ -241,6 +216,7 @@ def main():
                 plane_frame.add_sample(sample)
 
         else:
+
             sample = PlaneSample(
                 frame_id=frame_id,
                 timestamp=time.time(),
@@ -263,10 +239,9 @@ def main():
 
         collector.add_frame(plane_frame)
 
-        cv2.imshow("Plane Quality (REAL ArUco Plane)", frame)
+        cv2.imshow("Plane Quality (ArUco)", frame)
 
         key = cv2.waitKey(1)
-
         if key == 27:
             break
 
@@ -301,12 +276,9 @@ def main():
 
     # =====================================================
 
-    cap.release()
+    camera.release()
     cv2.destroyAllWindows()
 
 
-# =========================================================
-
 if __name__ == "__main__":
     main()
-    
