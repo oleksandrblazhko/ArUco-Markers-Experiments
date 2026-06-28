@@ -10,7 +10,7 @@ from plane_quality_report import PlaneQualityReport
 from plane_quality_heatmap import PlaneQualityHeatmap
 
 from camera import Camera
-import config
+from config import get_args
 
 
 # =========================================================
@@ -110,15 +110,28 @@ def pixel_to_world(pt, H):
 
 def main():
 
-    # ---------------- Camera (NEW) ----------------
+    # ---------------- Args (FROM OLD PROJECT STYLE) ----------------
+    args = get_args()
+
+    # ---------------- Camera ----------------
     camera = Camera(
-        cam_id=config.CAMERA_ID,
-        width=config.FRAME_WIDTH,
-        height=config.FRAME_HEIGHT
+        cam_id=args.cam,
+        width=args.width,
+        height=args.height
     )
 
     # ---------------- Detector ----------------
-    dictionary = cv2.aruco.getPredefinedDictionary(config.ARUCO_DICT)
+    DICT_MAP = {
+    "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
+    "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
+    "DICT_5X5_100": cv2.aruco.DICT_5X5_100,
+    "DICT_6X6_250": cv2.aruco.DICT_6X6_250,
+    }
+
+    dictionary = cv2.aruco.getPredefinedDictionary(
+        DICT_MAP.get(args.dict, cv2.aruco.DICT_4X4_50)
+    )
+
     detector = cv2.aruco.ArucoDetector(dictionary)
 
     # ---------------- Pipeline ----------------
@@ -167,7 +180,6 @@ def main():
             for i, corners in enumerate(corners_list):
 
                 marker_id = int(ids[i][0])
-
                 cx, cy = center_point(corners)
 
                 x1 = int(np.min(corners[0][:, 0]))
@@ -175,8 +187,7 @@ def main():
                 x2 = int(np.max(corners[0][:, 0]))
                 y2 = int(np.max(corners[0][:, 1]))
 
-                x1 = max(0, x1)
-                y1 = max(0, y1)
+                x1, y1 = max(0, x1), max(0, y1)
                 x2 = min(frame.shape[1] - 1, x2)
                 y2 = min(frame.shape[0] - 1, y2)
 
@@ -202,9 +213,7 @@ def main():
                     image_y_px=float(cy),
 
                     distance_from_center_px=dist_center,
-
                     marker_size_px=size_px,
-
                     sharpness=sharp,
 
                     camera_distance_mm=0.0,
@@ -241,8 +250,7 @@ def main():
 
         cv2.imshow("Plane Quality (ArUco)", frame)
 
-        key = cv2.waitKey(1)
-        if key == 27:
+        if cv2.waitKey(1) == 27:
             break
 
         frame_id += 1
@@ -255,17 +263,9 @@ def main():
 
     stats = analyzer.analyze(collector)
 
-    # =====================================================
-    # REPORT
-    # =====================================================
-
     reporter.print_summary(stats)
     reporter.save_csv(stats, "plane_quality.csv")
     reporter.save_json(stats, "plane_quality.json")
-
-    # =====================================================
-    # HEATMAPS
-    # =====================================================
 
     heatmap.plot(stats, mode="detection")
     heatmap.plot(stats, mode="sharpness")
