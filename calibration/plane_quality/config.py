@@ -111,7 +111,7 @@ def get_args():
     parser.add_argument("--board-height", type=int, default=CHESSBOARD_SIZE[1])
     parser.add_argument("--square-size", type=float, default=SQUARE_SIZE_M)
     parser.add_argument("--marker-size", type=float, default=CHARUCO_MARKER_SIZE_M)
-    parser.add_argument("--dict", type=str, default=CHARUCO_DICT_NAME)
+    #parser.add_argument("--dict", type=str, default=CHARUCO_DICT_NAME)
     parser.add_argument("--samples", type=int, default=DEFAULT_SAMPLES_NEEDED)
 
     # -------------------------
