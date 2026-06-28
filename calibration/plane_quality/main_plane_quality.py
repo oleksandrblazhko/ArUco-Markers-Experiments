@@ -12,6 +12,7 @@ from plane_quality_heatmap import PlaneQualityHeatmap
 from camera import Camera
 from config import get_args
 
+from config import ARUCO_DICT
 
 # =========================================================
 # REAL WORLD LAYOUT (mm)
@@ -122,7 +123,7 @@ def main():
 
     # ---------------- Detector ----------------
     
-    dictionary = cv2.aruco.getPredefinedDictionary(config.ARUCO_DICT)
+    dictionary = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
 
     detector = cv2.aruco.ArucoDetector(dictionary)
 
