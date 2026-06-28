@@ -17,6 +17,7 @@ import config
 class PlaneQualityCollector:
     def __init__(self):
         self.config = config
+        self.reset()
 
     """
     Collects PlaneFrame objects and provides access
