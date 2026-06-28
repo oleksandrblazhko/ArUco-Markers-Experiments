@@ -15,13 +15,14 @@ import matplotlib.pyplot as plt
 
 from plane_statistics import PlaneStatistics
 
+import config
 
 class PlaneQualityHeatmap:
     """
     Creates 2D heatmaps for plane quality analysis.
     """
-    def __init__(self, config):
-            self.config = config
+    def __init__(self):
+        self.config = config
 
     # =========================================================
     # INTERNAL: BUILD GRID

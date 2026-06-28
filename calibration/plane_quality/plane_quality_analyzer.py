@@ -12,6 +12,8 @@ Output:
 
 import numpy as np
 
+import config
+
 from plane_statistics import (
     PlaneStatistics,
     PlanePointStatistics
@@ -24,8 +26,9 @@ class PlaneQualityAnalyzer:
     """
     Performs statistical analysis of plane quality dataset.
     """
-    def __init__(self, config):
-        self.threshold = config.ANGLE_THRESHOLD
+    def __init__(self):
+        self.config = config
+
 
     def analyze(
         self,

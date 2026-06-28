@@ -15,9 +15,8 @@ from plane_sample import PlaneSample
 import config
 
 class PlaneQualityCollector:
-    def __init__(self, config):
-        self.grid_rows = config.GRID_ROWS
-        self.grid_cols = config.GRID_COLS
+    def __init__(self):
+        self.config = config
 
     """
     Collects PlaneFrame objects and provides access
