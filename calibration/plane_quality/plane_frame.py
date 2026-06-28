@@ -19,7 +19,7 @@ class PlaneFrame:
     frame_id: int
     timestamp: float
 
-    # Camera pose (optional but very useful)
+    # Camera pose (optional but useful for analysis)
     camera_distance_mm: float = 0.0
     pitch_deg: float = 0.0
     yaw_deg: float = 0.0
@@ -32,23 +32,31 @@ class PlaneFrame:
         """
         Add marker observation to this frame.
         """
-
         self.samples.append(sample)
 
+    # -------------------------------------------------------
+    # Backward compatibility (FIX for main_plane_quality.py)
+    # -------------------------------------------------------
+    def get_samples(self) -> List[PlaneSample]:
+        """
+        Compatibility method for legacy code.
+        """
+        return self.samples
+
+    # -------------------------------------------------------
+    # Metrics
+    # -------------------------------------------------------
     def detection_count(self) -> int:
         """
         Number of successfully detected markers.
         """
-
         return sum(1 for s in self.samples if s.detected)
 
     def detection_rate(self) -> float:
         """
-        Detection rate in this frame.
+        Detection rate in this frame (0–100%).
         """
-
         if not self.samples:
             return 0.0
 
         return 100.0 * self.detection_count() / len(self.samples)
-    

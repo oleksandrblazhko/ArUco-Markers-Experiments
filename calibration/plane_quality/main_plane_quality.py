@@ -116,6 +116,11 @@ def main():
         height=args.height
     )
 
+    # 🔴 REAL CAMERA CHECK
+    if not camera:
+        print("ERROR: Camera init failed")
+        return
+
     dictionary = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
     detector = cv2.aruco.ArucoDetector(dictionary)
 
@@ -130,18 +135,25 @@ def main():
     print("Press ESC to stop")
 
     # =====================================================
-    # LOOP
+    # CAMERA LOOP
     # =====================================================
 
     while True:
 
         ok, frame = camera.read()
-        if not ok:
-            break
+        if not ok or frame is None:
+            print("WARNING: frame not received")
+            continue
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         corners_list, ids, _ = detector.detectMarkers(gray)
+
+        # =================================================
+        # 🔥 VISUALIZATION FIX (IMPORTANT)
+        # =================================================
+        if ids is not None and len(corners_list) > 0:
+            cv2.aruco.drawDetectedMarkers(frame, corners_list, ids)
 
         plane_frame = PlaneFrame(
             frame_id=frame_id,
@@ -152,9 +164,7 @@ def main():
         # DETECTION VALIDATION
         # =================================================
 
-        valid_detection = ids is not None and len(corners_list) > 0
-
-        if valid_detection:
+        if ids is not None and len(corners_list) > 0:
 
             img_pts, world_pts = extract_correspondences(corners_list, ids)
 
@@ -201,7 +211,6 @@ def main():
                 plane_frame.add_sample(sample)
 
         else:
-            # ❗ важливо: НЕ засмічуємо analyzer
             sample = PlaneSample(
                 frame_id=frame_id,
                 timestamp=time.time(),
@@ -223,31 +232,42 @@ def main():
             plane_frame.add_sample(sample)
 
         # =================================================
-        # COLLECT ONLY NON-EMPTY FRAMES
+        # COLLECT
         # =================================================
 
-        if len(plane_frame.get_samples()) > 0:
+        if len(plane_frame.samples) > 0:
             collector.add_frame(plane_frame)
 
         frame_id += 1
 
-        if cv2.waitKey(1) == 27:
+        # =================================================
+        # GUI
+        # =================================================
+
+        cv2.imshow("Plane Quality", frame)
+
+        key = cv2.waitKey(1) & 0xFF
+        if key == 27:
             break
 
     # =====================================================
-    # ANALYSIS SAFETY CHECK
+    # ANALYSIS
     # =====================================================
 
     print("\nAnalyzing...")
 
     if len(collector.get_frames()) == 0:
-        print("ERROR: No frames collected → check camera / detection")
+        print("ERROR: No frames collected")
+        camera.release()
+        cv2.destroyAllWindows()
         return
 
     stats = analyzer.analyze(collector)
 
     if not stats:
-        print("ERROR: Analyzer returned empty stats → data filtering issue")
+        print("ERROR: Analyzer returned empty stats")
+        camera.release()
+        cv2.destroyAllWindows()
         return
 
     reporter.print_summary(stats)
@@ -267,3 +287,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
