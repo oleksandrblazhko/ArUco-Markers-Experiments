@@ -14,15 +14,13 @@ from plane_sample import PlaneSample
 
 class PlaneQualityCollector:
     def __init__(self, config):
-        self.config = config
+        self.grid_rows = config.GRID_ROWS
+        self.grid_cols = config.GRID_COLS
+
     """
     Collects PlaneFrame objects and provides access
     to both frame-level and sample-level data.
     """
-
-    def __init__(self):
-
-        self.reset()
 
     # =========================================================
     # RESET

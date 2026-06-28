@@ -25,6 +25,7 @@
 Проаналізуй можливість, доцільність використання такої дошки для визначення зони якості роспізнавання маркерів.
 
 Є програма, яка містить модулі:
+https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/config.py
 https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/main_plane_quality.py
 https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_frame.py
 https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_analyzer.py
