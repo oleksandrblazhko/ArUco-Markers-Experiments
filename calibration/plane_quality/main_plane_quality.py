@@ -9,8 +9,6 @@ from plane_quality_analyzer import PlaneQualityAnalyzer
 from plane_quality_report import PlaneQualityReport
 from plane_quality_heatmap import PlaneQualityHeatmap
 
-from config import config
-
 import config
 
 # =========================================================

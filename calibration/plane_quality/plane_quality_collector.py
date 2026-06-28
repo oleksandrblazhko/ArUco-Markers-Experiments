@@ -12,6 +12,8 @@ from typing import Dict, List, Tuple
 from plane_frame import PlaneFrame
 from plane_sample import PlaneSample
 
+import config
+
 class PlaneQualityCollector:
     def __init__(self, config):
         self.grid_rows = config.GRID_ROWS
