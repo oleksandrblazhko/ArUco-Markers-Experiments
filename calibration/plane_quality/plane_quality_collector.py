@@ -12,8 +12,9 @@ from typing import Dict, List, Tuple
 from plane_frame import PlaneFrame
 from plane_sample import PlaneSample
 
-
 class PlaneQualityCollector:
+    def __init__(self, config):
+        self.config = config
     """
     Collects PlaneFrame objects and provides access
     to both frame-level and sample-level data.

@@ -5,6 +5,22 @@ from enum import Enum
 # Program Mode
 # ==========================================================
 
+from dataclasses import dataclass
+
+@dataclass
+class PlaneQualityConfig:
+    grid_rows: int = 6
+    grid_cols: int = 8
+
+    min_samples: int = 30
+    angle_threshold: float = 2.5
+    distance_threshold: float = 0.01
+
+    heatmap_resolution: int = 200
+    output_dir: str = "results"
+
+config = PlaneQualityConfig()
+
 class ProgramMode(Enum):
     CALIBRATION = "calibration"
     PLANE_QUALITY = "plane_quality"

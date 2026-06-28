@@ -24,6 +24,8 @@ class PlaneQualityAnalyzer:
     """
     Performs statistical analysis of plane quality dataset.
     """
+    def __init__(self, config):
+            self.config = config
 
     def analyze(
         self,

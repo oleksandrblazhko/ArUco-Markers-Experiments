@@ -9,6 +9,7 @@ from plane_quality_analyzer import PlaneQualityAnalyzer
 from plane_quality_report import PlaneQualityReport
 from plane_quality_heatmap import PlaneQualityHeatmap
 
+from config import config
 
 # =========================================================
 # CONFIG
@@ -137,7 +138,7 @@ def main():
 
     # ---------------- Pipeline ----------------
 
-    collector = PlaneQualityCollector()
+    collector = PlaneQualityCollector(config)
     analyzer = PlaneQualityAnalyzer()
     reporter = PlaneQualityReport()
     heatmap = PlaneQualityHeatmap()

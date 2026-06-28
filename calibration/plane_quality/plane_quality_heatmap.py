@@ -20,6 +20,8 @@ class PlaneQualityHeatmap:
     """
     Creates 2D heatmaps for plane quality analysis.
     """
+    def __init__(self, config):
+            self.config = config
 
     # =========================================================
     # INTERNAL: BUILD GRID
