@@ -10,9 +10,8 @@ from plane_quality_report import PlaneQualityReport
 from plane_quality_heatmap import PlaneQualityHeatmap
 
 from camera import Camera
-from config import get_args
+from config import get_args, ARUCO_DICT
 
-from config import ARUCO_DICT
 
 # =========================================================
 # REAL WORLD LAYOUT (mm)
@@ -51,10 +50,7 @@ def marker_size_px(corners):
 
 def center_point(corners):
     c = corners[0]
-    return (
-        float(np.mean(c[:, 0])),
-        float(np.mean(c[:, 1]))
-    )
+    return float(np.mean(c[:, 0])), float(np.mean(c[:, 1]))
 
 
 def distance(a, b):
@@ -62,10 +58,13 @@ def distance(a, b):
 
 
 # =========================================================
-# HOMOGRAPHY HELPERS
+# SAFE HOMOGRAPHY INPUT
 # =========================================================
 
 def extract_correspondences(corners_list, ids):
+
+    if ids is None or len(corners_list) == 0:
+        return None, None
 
     img_pts = []
     world_pts = []
@@ -78,7 +77,6 @@ def extract_correspondences(corners_list, ids):
             continue
 
         c = corners[0]
-
         cx = float(np.mean(c[:, 0]))
         cy = float(np.mean(c[:, 1]))
 
@@ -95,7 +93,6 @@ def extract_correspondences(corners_list, ids):
 
 
 def pixel_to_world(pt, H):
-
     if H is None:
         return 0.0, 0.0
 
@@ -111,23 +108,17 @@ def pixel_to_world(pt, H):
 
 def main():
 
-    # ---------------- Args (FROM OLD PROJECT STYLE) ----------------
     args = get_args()
 
-    # ---------------- Camera ----------------
     camera = Camera(
         cam_id=args.cam,
         width=args.width,
         height=args.height
     )
 
-    # ---------------- Detector ----------------
-    
     dictionary = cv2.aruco.getPredefinedDictionary(ARUCO_DICT)
-
     detector = cv2.aruco.ArucoDetector(dictionary)
 
-    # ---------------- Pipeline ----------------
     collector = PlaneQualityCollector()
     analyzer = PlaneQualityAnalyzer()
     reporter = PlaneQualityReport()
@@ -139,7 +130,7 @@ def main():
     print("Press ESC to stop")
 
     # =====================================================
-    # CAPTURE LOOP
+    # LOOP
     # =====================================================
 
     while True:
@@ -157,32 +148,29 @@ def main():
             timestamp=time.time()
         )
 
-        # -------------------------------------------------
-        # HOMOGRAPHY UPDATE
-        # -------------------------------------------------
+        # =================================================
+        # DETECTION VALIDATION
+        # =================================================
 
-        if ids is not None:
+        valid_detection = ids is not None and len(corners_list) > 0
+
+        if valid_detection:
 
             img_pts, world_pts = extract_correspondences(corners_list, ids)
 
             if img_pts is not None and len(img_pts) >= 4:
                 H, _ = cv2.findHomography(img_pts, world_pts, cv2.RANSAC)
 
-            cv2.aruco.drawDetectedMarkers(frame, corners_list, ids)
-
             for i, corners in enumerate(corners_list):
 
                 marker_id = int(ids[i][0])
+
                 cx, cy = center_point(corners)
 
-                x1 = int(np.min(corners[0][:, 0]))
-                y1 = int(np.min(corners[0][:, 1]))
-                x2 = int(np.max(corners[0][:, 0]))
-                y2 = int(np.max(corners[0][:, 1]))
-
-                x1, y1 = max(0, x1), max(0, y1)
-                x2 = min(frame.shape[1] - 1, x2)
-                y2 = min(frame.shape[0] - 1, y2)
+                x1 = max(0, int(np.min(corners[0][:, 0])))
+                y1 = max(0, int(np.min(corners[0][:, 1])))
+                x2 = min(frame.shape[1] - 1, int(np.max(corners[0][:, 0])))
+                y2 = min(frame.shape[0] - 1, int(np.max(corners[0][:, 1])))
 
                 sharp = compute_sharpness(gray, x1, y1, x2, y2)
                 size_px = marker_size_px(corners)
@@ -195,20 +183,15 @@ def main():
                 sample = PlaneSample(
                     frame_id=frame_id,
                     timestamp=time.time(),
-
                     marker_id=marker_id,
                     detected=True,
-
                     board_x_mm=world_x,
                     board_y_mm=world_y,
-
                     image_x_px=float(cx),
                     image_y_px=float(cy),
-
                     distance_from_center_px=dist_center,
                     marker_size_px=size_px,
                     sharpness=sharp,
-
                     camera_distance_mm=0.0,
                     pitch_deg=0.0,
                     yaw_deg=0.0,
@@ -218,7 +201,7 @@ def main():
                 plane_frame.add_sample(sample)
 
         else:
-
+            # ❗ важливо: НЕ засмічуємо analyzer
             sample = PlaneSample(
                 frame_id=frame_id,
                 timestamp=time.time(),
@@ -239,22 +222,33 @@ def main():
 
             plane_frame.add_sample(sample)
 
-        collector.add_frame(plane_frame)
+        # =================================================
+        # COLLECT ONLY NON-EMPTY FRAMES
+        # =================================================
 
-        cv2.imshow("Plane Quality (ArUco)", frame)
+        if len(plane_frame.get_samples()) > 0:
+            collector.add_frame(plane_frame)
+
+        frame_id += 1
 
         if cv2.waitKey(1) == 27:
             break
 
-        frame_id += 1
-
     # =====================================================
-    # ANALYSIS
+    # ANALYSIS SAFETY CHECK
     # =====================================================
 
     print("\nAnalyzing...")
 
+    if len(collector.get_frames()) == 0:
+        print("ERROR: No frames collected → check camera / detection")
+        return
+
     stats = analyzer.analyze(collector)
+
+    if not stats:
+        print("ERROR: Analyzer returned empty stats → data filtering issue")
+        return
 
     reporter.print_summary(stats)
     reporter.save_csv(stats, "plane_quality.csv")
@@ -266,8 +260,6 @@ def main():
 
     heatmap.save_png(stats, "heatmap_detection.png", "detection")
     heatmap.save_png(stats, "heatmap_sharpness.png", "sharpness")
-
-    # =====================================================
 
     camera.release()
     cv2.destroyAllWindows()
