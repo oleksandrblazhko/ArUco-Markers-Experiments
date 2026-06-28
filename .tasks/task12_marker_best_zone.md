@@ -1,38 +1,141 @@
-Є програма quality\marker_quality.py
-Треба створити подібну програму з назвою quality\marker_best_zone.py
-Особливості:
-1) програма пропонує переміщати групи з 9-ти маркерів зліва-направо зони із зсувом, який визначається як параметр конфігурації, наприклад, 10 мм
-2) довжина зони визначається як параметр конфігурації, наприклад, 270 мм;
-3) для кожної ітерації зсуву група маркерів розташовується за чотирма кутами (0, 90, 180, 270)
-4) для кожного положення групи маркерів визначається Detection Rate для кожного маркера
-5) для кожного положення групи маркерів визначається середній Detection Rate всіх маркерів групи
-6) середні значення Detection Rate для кожного положення зберігати у файлі marker_zone.md 
+Експерименти з використанням ArUco-маркерів показали, що окрема камера має неоднорідну якість розпізнавання маркерів у різних частинах поля зору. Зокрема, для однієї з досліджених камер було виявлено зниження стабільності детекції при наближенні маркерів до правої межі видимої області зображення, де спостерігається перетин певного порогового рівня якості розпізнавання.
 
-Якщо виникнуть питання, задавай!
+Це свідчить про наявність просторово залежних викривлень або деградації якості зображення (наприклад, оптичні аберації, нерівномірне освітлення або особливості сенсора), що безпосередньо впливають на алгоритми детекції маркерів.
 
-Є програма калібрування камери, яка містить наступні програмні модулі:
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/ChArUcoBoardGenerator.py?token=GHSAT0AAAAAADI4YE2HPUPHZMWWPBLZTPDM2SAV7IQ
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/calibrator.py?token=GHSAT0AAAAAADI4YE2GDDQN5P7F6SIAJYRQ2SAV7YA
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/camera.py?token=GHSAT0AAAAAADI4YE2H4GDX7KWMAITBGZL22SAWABQ
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/config.py?token=GHSAT0AAAAAADI4YE2H3GZ7AEAODIZVVHX62SAWALA
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/detectors.py?token=GHSAT0AAAAAADI4YE2GVAXJRP3XQKCK67K22SAWAUQ
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/main.py?token=GHSAT0AAAAAADI4YE2HIWXKAFHBFHAMSYM22SAWA4Q
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/quality_analyzer.py?token=GHSAT0AAAAAADI4YE2HQ3JVJP3JVLM3DBQA2SAWBFA
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/sample_collector.py?token=GHSAT0AAAAAADI4YE2HKQ3ADT3BRFEK27GW2SAWBRQ
-- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/ui.py?token=GHSAT0AAAAAADI4YE2GH2TSYI3RDYAZ2RB22SAWB2A
+У зв’язку з цим було запропоновано програмний інструмент для оцінювання просторової якості розпізнавання ArUco-маркерів у межах поля зору камери. Даний інструмент дозволяє побудувати карту стабільності детекції та визначити області зниженої точності, що є критично важливим для задач калібрування, трекінгу та метричних вимірювань у комп’ютерному зорі.
 
-Програма може використовувати дошку з ArUco-маркерами.
-Проаналізуй можливість, доцільність використання такої дошки для визначення зони якості роспізнавання маркерів.
+Була створена програма генерації ChArUcoBoard - 
+https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/ChArUcoBoardGenerator.py
 
-Є програма, яка містить модулі:
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/config.py
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/main_plane_quality.py
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_frame.py
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_analyzer.py
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_collector.py
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_heatmap.py
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_report.py
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_sample.py
-https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_statistics.py
+Програма ChArUcoBoardGenerator призначена для автоматичного створення калібрувальних шаблонів типу ChArUco Board під час калібрування камери.
+Але виникає питання, яку дошку з AruCo-маркерами треба створити, щоб побудувати карту стабільності детекції та визначити області зниженої точності ?
 
-Ти можеш прочитати зміст модулів ?
+Після створення програми ChArUcoBoardGenerator виникає питання: якою повинна бути калібрувальна дошка, щоб вона дозволяла побудувати карту просторової стабільності детекції ArUco-маркерів?
+
+Для звичайного калібрування камери достатньо, щоб ChArUco-дошка забезпечувала надійну оцінку внутрішніх параметрів камери. Проте для дослідження просторової неоднорідності якості детекції вимоги до дошки суттєво відрізняються.
+
+Така дошка повинна забезпечувати:
+1) Рівномірне покриття всього поля зору камери. Маркери мають бути розташовані по всій площині дошки, включаючи її краї та кути, щоб можна було оцінити якість детекції в різних областях зображення.
+2) Достатню просторову густину маркерів. Відстань між сусідніми маркерами повинна бути такою, щоб при будь-якому положенні дошки в кадрі одночасно було видно достатню кількість маркерів для статистичного аналізу.
+3) Однозначну ідентифікацію кожного маркера. Кожний ArUco-маркер має мати унікальний ідентифікатор, що дозволяє накопичувати статистику детекції окремо для кожного фізичного положення на дошці.
+4) Відомі метричні координати маркерів. Координати центрів усіх маркерів повинні бути відомі в системі координат дошки. Це дозволяє зіставляти результати детекції, отримані з різних кадрів, незалежно від положення камери.
+5) Достатні фізичні розміри дошки. Розмір дошки має бути таким, щоб вона займала значну частину поля зору камери та дозволяла дослідити області від центру до крайових зон.
+
+Звідси випливає важливий висновок
+
+Для побудови карти стабільності детекції найважливішим є не тип дошки (ChArUco чи GridBoard), а можливість однозначно визначити просторове положення кожного маркера та накопичувати статистику його розпізнавання.
+
+Тобто кожен маркер стає контрольною точкою, для якої накопичуються такі показники, як:
+- частота успішної детекції;
+- середня різкість зображення;
+- середній розмір маркера в пікселях;
+- відстань від центра кадру;
+- координати в системі координат дошки.
+
+Саме на основі цих даних будується карта стабільності детекції, яка відображає області поля зору камери, де алгоритм ArUco працює надійно, і області, у яких спостерігається зниження якості розпізнавання.
+
+Таким чином - обираємо маркери з одним ID. Але виникає питання: який ID обрати? Обрати найкращий ? Чи ні ? Найкращий маркер може не виявити потенційні проблеми .
+
+Це дуже правильне зауваження. Якщо вибрати лише найкращий маркер, то теплова мапа може стати занадто оптимістичною і не покаже проблемні зони, які проявляться для «звичайних» маркерів.
+
+Тут важливо зрозуміти, що саме ти хочеш виміряти.
+
+Два можливі визначення «якості камери»
+1. Найкраща можлива якість детекції
+
+Тоді береться найкращий маркер (наприклад ID 327).
+
+Теплова мапа показує:
+
+«У яких областях камера здатна працювати максимально добре».
+
+Це корисно для оцінки верхньої межі можливостей системи.
+
+2. Типова/реалістична якість детекції
+
+Тоді найкращий маркер не підходить.
+
+Потрібен маркер, який представляє середню поведінку словника.
+
+У твоїх даних це приблизно:
+
+Медіана Detection Rate
+
+≈ 85–87%
+
+Така мапа буде найбільш «чесною»
+
+Вона показуватиме, як поводиться типовий ArUco-маркер, а не рекордсмен.
+
+Що я б рекомендував
+Не один маркер, а 3 групи
+
+Група
+
+	
+
+ID
+
+
+
+
+Best
+
+	
+
+327, 942, 941
+
+
+
+
+Typical
+
+	
+
+≈ 85–87% (наприклад 658, 691, 49)
+
+
+
+
+Worst
+
+	
+
+62, 479
+
+Тоді будуються три теплові мапи
+Best-map
+
+Показує максимально можливу якість камери.
+
+Typical-map
+
+Показує реалістичну якість для більшості маркерів.
+
+Worst-map
+
+Показує найгірший сценарій.
+
+Але якщо потрібна одна-єдина мапа
+Моя рекомендація
+
+Використовуй не найкращий маркер, а маркер із медіанною Detection Rate.
+
+У твоєму наборі це приблизно 85–86%.
+
+Чому саме медіана:
+
+не є аномально хорошим;
+
+не є аномально поганим;
+
+найкраще представляє «типовий» маркер словника;
+
+дає найбільш об'єктивну карту якості камери.
+
+Науково це можна сформулювати так
+
+«Для побудови теплової карти просторової якості детекції доцільно використовувати маркер, характеристики якого є репрезентативними для словника ArUco. 
+Найкращим вибором є маркер із медіанним значенням Detection Rate, оскільки він мінімізує вплив як аномально стійких, так і аномально нестійких кодів.»
+
+Обираємо маркер ID = 691

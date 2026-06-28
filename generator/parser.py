@@ -53,4 +53,5 @@ def parse_marker_ids(file_path: str) -> list[int]:
         if x not in seen:
             seen.add(x)
             unique_ids.append(x)
-    return unique_ids
+#    return unique_ids
+    return marker_ids
