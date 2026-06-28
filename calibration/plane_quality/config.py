@@ -1,6 +1,8 @@
 import argparse
 from enum import Enum
 
+import cv2
+
 # ==========================================================
 # Program Mode
 # ==========================================================
@@ -57,7 +59,7 @@ CHARUCO_SQUARES_X = 9
 CHARUCO_SQUARES_Y = 6
 CHARUCO_SQUARE_SIZE_M = 0.025
 CHARUCO_MARKER_SIZE_M = 0.018
-CHARUCO_DICT_NAME = "DICT_4X4_1000"
+ARUCO_DICT = cv2.aruco.DICT_4X4_1000
 
 
 # ==========================================================

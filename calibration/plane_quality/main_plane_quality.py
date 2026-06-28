@@ -121,16 +121,8 @@ def main():
     )
 
     # ---------------- Detector ----------------
-    DICT_MAP = {
-    "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
-    "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
-    "DICT_5X5_100": cv2.aruco.DICT_5X5_100,
-    "DICT_6X6_250": cv2.aruco.DICT_6X6_250,
-    }
-
-    dictionary = cv2.aruco.getPredefinedDictionary(
-        DICT_MAP.get(args.dict, cv2.aruco.DICT_4X4_50)
-    )
+    
+    dictionary = cv2.aruco.getPredefinedDictionary(config.ARUCO_DICT)
 
     detector = cv2.aruco.ArucoDetector(dictionary)
 
