@@ -152,3 +152,25 @@ fx/fy:
 🔷 13. Головна ідея (дуже важливо)
 
 Калібрування — це не “розпізнати дошку”, а “побачити оптику камери на межах її поля зору”
+
+
+calibration/
+│
+├── main.py
+├── config.py
+├── camera.py
+├── detectors.py
+├── calibrator.py
+├── sample_collector.py
+├── quality_analyzer.py
+├── ui.py
+│
+├── plane_quality/
+│   ├── __init__.py
+│   ├── plane_quality_collector.py
+│   ├── plane_quality_analyzer.py
+│   ├── plane_quality_heatmap.py
+│   ├── plane_quality_report.py
+│   └── plane_sample.py
+│
+└── output/
