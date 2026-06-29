@@ -1,10 +1,10 @@
 {
-    "timestamp": "2026-06-28T16:42:09.409290",
+    "timestamp": "2026-06-29T11:02:40.740600",
     "summary": {
-        "frames": 6264,
-        "samples": 503086,
-        "detections": 502325,
-        "global_detection_rate": 99.8487336161213,
+        "frames": 973,
+        "samples": 285363,
+        "detections": 285081,
+        "global_detection_rate": 99.90117849896448,
         "board_points": 1
     },
     "board": {
@@ -15,14 +15,14 @@
         {
             "board_x_mm": 0.0,
             "board_y_mm": 0.0,
-            "observations": 503086,
-            "detections": 502325,
-            "detection_rate": 99.8487336161213,
-            "mean_sharpness": 4363.644103707759,
-            "std_sharpness": 1543.2735942077336,
-            "mean_marker_size_px": 22.319885619571195,
-            "std_marker_size_px": 0.9817100870805482,
-            "mean_distance_center_px": 173.4524188589681,
+            "observations": 285363,
+            "detections": 285081,
+            "detection_rate": 99.90117849896448,
+            "mean_sharpness": 6857.591333219625,
+            "std_sharpness": 2634.38104910054,
+            "mean_marker_size_px": 14.736846767687988,
+            "std_marker_size_px": 0.5979763091508744,
+            "mean_distance_center_px": 176.28325207602688,
             "mean_camera_distance_mm": 0.0,
             "mean_pitch_deg": 0.0,
             "mean_yaw_deg": 0.0,
