@@ -154,6 +154,11 @@ Worst-map
 - https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_sample.py
 - https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_statistics.py
 
+Під час останнього запуску програми використовувався аркуш з ArUco-маркерами одного ID = 691 - матриця 19x27.
+Останній записк програми надав результат - https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_grid.md
+
+
+
 
 Зараз треба переробити програму так, щоб:
 1) на екрані для кожного роспізнаного маркеру не показувалися вісі x-y-z та ID маркеру
