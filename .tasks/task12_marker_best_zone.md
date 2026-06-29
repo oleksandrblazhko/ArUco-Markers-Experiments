@@ -4,7 +4,7 @@
 
 У зв’язку з цим було запропоновано програмний інструмент для оцінювання просторової якості розпізнавання ArUco-маркерів у межах поля зору камери. Даний інструмент дозволяє побудувати карту стабільності детекції та визначити області зниженої точності, що є критично важливим для задач калібрування, трекінгу та метричних вимірювань у комп’ютерному зорі.
 
-Була створена програма генерації ChArUcoBoard - 
+Генерації ChArUcoBoard - 
 https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/ChArUcoBoardGenerator.py
 
 Програма ChArUcoBoardGenerator призначена для автоматичного створення калібрувальних шаблонів типу ChArUco Board під час калібрування камери.
@@ -139,3 +139,29 @@ Worst-map
 Найкращим вибором є маркер із медіанним значенням Detection Rate, оскільки він мінімізує вплив як аномально стійких, так і аномально нестійких кодів.»
 
 Обираємо маркер ID = 691
+
+Є програма - https://github.com/oleksandrblazhko/ArUco-Markers-Experiments/tree/main/calibration/plane_quality
+яка повинна будувати карту стабільності детекції ArUco-маркера.
+Переглянь файли проекту:
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/camera.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/config.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/main_plane_quality.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_frame.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_analyzer.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_collector.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_heatmap.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_report.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_sample.py
+- https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_statistics.py
+
+
+Зараз треба переробити програму так, щоб:
+1) на екрані для кожного роспізнаного маркеру не показувалися вісі x-y-z та ID маркеру
+2) на екрані кожен роспізнаний маркер мав кольорову рамку, колір якої визначався на основі частоти успішної детекції, як на тепловій карті:
+- максимальний рівень детекції  - темно зелений колір
+- мінімальний рівень детекції - червоний колір
+3) не треба малювати окремі png-файли з тепловою картою
+
+
+Тобто кожен маркер стає контрольною точкою, для якої накопичуються такі показники, як:
+- частота успішної детекції;

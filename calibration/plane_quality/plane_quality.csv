@@ -1,2 +1,0 @@
-board_x_mm,board_y_mm,observations,detections,detection_rate,mean_sharpness,std_sharpness,mean_marker_size_px,std_marker_size_px,mean_distance_center_px,mean_camera_distance_mm,mean_pitch_deg,mean_yaw_deg,mean_roll_deg
-0.0,0.0,285363,285081,99.90117849896448,6857.591333219625,2634.38104910054,14.736846767687988,0.5979763091508744,176.28325207602688,0.0,0.0,0.0,0.0
