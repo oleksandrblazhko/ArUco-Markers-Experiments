@@ -156,6 +156,12 @@ Worst-map
 
 Під час останнього запуску програми використовувався аркуш з ArUco-маркерами одного ID = 691 - матриця 19x27.
 Останній записк програми надав результат - https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/plane_quality_grid.md
+Також є текстовий результат - https://raw.githubusercontent.com/oleksandrblazhko/ArUco-Markers-Experiments/refs/heads/main/calibration/plane_quality/log.md
+
+Треба розібратися, чому md-таблиця мыстить менше стовпчикыв та рядкыв ніж матриця.
+Візульно було видно, що у вправому кутку видимої зони у перших стовпчиках візуалізувалися декілька меркерів, хоча їх було мало і це нормально,
+бо це повязано з особливостями камери, яка має гіршу різкість у правому кутку.
+
 
 
 
