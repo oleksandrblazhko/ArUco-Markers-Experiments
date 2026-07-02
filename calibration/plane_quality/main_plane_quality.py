@@ -14,22 +14,23 @@ from config import get_args, ARUCO_DICT
 
 
 # =========================================================
-# REAL WORLD LAYOUT (mm)
-# =========================================================
-
-MARKER_LAYOUT_MM = {
-    0: (0.0, 0.0),
-    1: (50.0, 0.0),
-    2: (100.0, 0.0),
-    3: (0.0, 50.0),
-    4: (50.0, 50.0),
-    5: (100.0, 50.0),
-}
-
-
-# =========================================================
 # UTILITIES
 # =========================================================
+
+def generate_hypothetical_grid(rows, cols, marker_size_mm, separation_mm):
+    """
+    Generates the real-world coordinates (in mm) of the center of each marker in the grid.
+    Returns a numpy array of shape (rows*cols, 1, 2).
+    """
+    world_points = []
+    step = marker_size_mm + separation_mm
+    for r in range(rows):
+        for c in range(cols):
+            world_points.append([c * step, r * step])
+    
+    return np.array(world_points, dtype=np.float32).reshape(-1, 1, 2)
+
+
 
 def compute_sharpness(gray, x1, y1, x2, y2):
     roi = gray[y1:y2, x1:x2]
@@ -61,37 +62,6 @@ def distance(a, b):
 # SAFE HOMOGRAPHY INPUT
 # =========================================================
 
-def extract_correspondences(corners_list, ids):
-
-    if ids is None or len(corners_list) == 0:
-        return None, None
-
-    img_pts = []
-    world_pts = []
-
-    for i, corners in enumerate(corners_list):
-
-        marker_id = int(ids[i][0])
-
-        if marker_id not in MARKER_LAYOUT_MM:
-            continue
-
-        c = corners[0]
-        cx = float(np.mean(c[:, 0]))
-        cy = float(np.mean(c[:, 1]))
-
-        img_pts.append([cx, cy])
-        world_pts.append(MARKER_LAYOUT_MM[marker_id])
-
-    if len(img_pts) < 4:
-        return None, None
-
-    return (
-        np.array(img_pts, dtype=np.float32),
-        np.array(world_pts, dtype=np.float32)
-    )
-
-
 def pixel_to_world(pt, H):
     if H is None:
         return 0.0, 0.0
@@ -106,130 +76,42 @@ def pixel_to_world(pt, H):
 # GRID RECONSTRUCTION HELPERS
 # =========================================================
 
-def cluster_1d(values, max_clusters, tolerance=15.0):
+def save_markdown_grid(stats, args, filename="plane_quality_grid.md"):
     """
-    Groups a list of 1D coordinates (X or Y pixel values) into clusters
-    representing columns or rows. Agglomeratively merges closest coordinates.
+    Builds a row-by-column markdown grid representation of detection rates
+    based on a complete, structured grid.
     """
-    if not values:
-        return {}
-    sorted_vals = sorted(list(set(values)))
-    
-    # Initial grouping based on pixel distance tolerance
-    groups = []
-    for val in sorted_vals:
-        if not groups:
-            groups.append([val])
-        else:
-            if val - np.mean(groups[-1]) < tolerance:
-                groups[-1].append(val)
-            else:
-                groups.append([val])
-                
-    # Merge closest groups until we reach <= max_clusters
-    while len(groups) > max_clusters:
-        min_diff = float('inf')
-        merge_idx = -1
-        for i in range(len(groups) - 1):
-            diff = np.mean(groups[i+1]) - np.mean(groups[i])
-            if diff < min_diff:
-                min_diff = diff
-                merge_idx = i
-        if merge_idx != -1:
-            groups[merge_idx].extend(groups[merge_idx+1])
-            groups.pop(merge_idx+1)
-        else:
-            break
-            
-    val_to_idx = {}
-    for idx, grp in enumerate(groups):
-        for val in grp:
-            val_to_idx[val] = idx
-            
-    return val_to_idx
-
-
-def save_markdown_grid(stats, filename="plane_quality_grid.md"):
-    """
-    Builds a row-by-column markdown grid representation of detection rates.
-    """
-    points = list(stats.statistics.values())
-    if not points:
-        print("No points to save in Markdown grid")
+    if not stats or not stats.statistics:
+        print("No stats to save in Markdown grid")
         return
-        
-    xs = [p.board_x_mm for p in points]
-    ys = [p.board_y_mm for p in points]
+
+    stats_map = {(p.board_x_mm, p.board_y_mm): p for p in stats.statistics.values()}
     
-    # 19x27 layout grid clustering
-    x_to_col = cluster_1d(xs, max_clusters=27, tolerance=15.0)
-    y_to_row = cluster_1d(ys, max_clusters=19, tolerance=15.0)
-    
-    num_cols = max(x_to_col.values()) + 1 if x_to_col else 0
-    num_rows = max(y_to_row.values()) + 1 if y_to_row else 0
-    
-    grid = [["-" for _ in range(num_cols)] for _ in range(num_rows)]
-    
-    for p in points:
-        row = y_to_row[p.board_y_mm]
-        col = x_to_col[p.board_x_mm]
-        grid[row][col] = f"{p.detection_rate:.1f}%"
-        
+    grid = [["-" for _ in range(args.grid_cols)] for _ in range(args.grid_rows)]
+    step = args.marker_size + args.marker_separation
+
+    for r in range(args.grid_rows):
+        for c in range(args.grid_cols):
+            world_x = c * step
+            world_y = r * step
+            
+            point_stats = stats_map.get((world_x, world_y))
+            if point_stats:
+                grid[r][c] = f"{point_stats.detection_rate:.1f}%"
+
     with open(filename, "w", encoding="utf-8") as f:
-        f.write("# ArUco Marker Detection Quality Grid (19x27)\n\n")
+        f.write(f"# ArUco Marker Detection Quality Grid ({args.grid_rows}x{args.grid_cols})\n\n")
         f.write(f"Generated on: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n\n")
-        f.write(f"Detected Grid Size: {num_rows} Rows x {num_cols} Columns\n\n")
         
-        headers = ["Row / Col"] + [f"Col {c}" for c in range(num_cols)]
+        headers = ["Row/Col"] + [f"Col {c}" for c in range(args.grid_cols)]
         f.write("| " + " | ".join(headers) + " |\n")
         f.write("| " + " | ".join(["---"] * len(headers)) + " |\n")
         
-        for r in range(num_rows):
+        for r in range(args.grid_rows):
             row_data = [f"Row {r}"] + grid[r]
             f.write("| " + " | ".join(row_data) + " |\n")
             
     print(f"Saved Markdown grid report to {filename}")
-
-
-# =========================================================
-# SPATIAL TRACKER FOR INDENTICAL ID MARKERS
-# =========================================================
-
-class TrackedMarker:
-    _next_id = 1
-    
-    def __init__(self, marker_id, center, size, timestamp, window_s=2.0):
-        self.id = TrackedMarker._next_id
-        TrackedMarker._next_id += 1
-        self.marker_id = marker_id
-        self.start_center = center
-        self.last_center = center
-        self.last_size = size
-        self.window_s = window_s
-        self.history = [(timestamp, True)]
-        self.missed_count = 0
-
-    def update(self, detected, timestamp, center=None, size=None):
-        if detected:
-            self.history.append((timestamp, True))
-            self.last_center = center
-            if size is not None:
-                self.last_size = size
-            self.missed_count = 0
-        else:
-            self.history.append((timestamp, False))
-            self.missed_count += 1
-        
-        # Keep only the last window_s seconds
-        cutoff = timestamp - self.window_s
-        self.history = [obs for obs in self.history if obs[0] >= cutoff]
-
-    @property
-    def detection_rate(self):
-        if not self.history:
-            return 0.0
-        detections = sum(1 for obs in self.history if obs[1])
-        return detections / len(self.history)
 
 
 # =========================================================
@@ -246,7 +128,6 @@ def main():
         height=args.height
     )
 
-    # 🔴 REAL CAMERA CHECK
     if not camera:
         print("ERROR: Camera init failed")
         return
@@ -260,278 +141,170 @@ def main():
     heatmap = PlaneQualityHeatmap()
 
     frame_id = 0
+    
     H = None
+    homography_is_stable = False
+    hypothetical_grid_mm = None
 
-    # Track spatial marker instances dynamically
-    tracked_markers = []
-
-    print("Press ESC to stop")
-
-    # =====================================================
-    # CAMERA LOOP
-    # =====================================================
+    print("Press ESC to stop. Looking for marker plane...")
 
     while True:
-
         ok, frame = camera.read()
         if not ok or frame is None:
             print("WARNING: frame not received")
             continue
 
+        if args.flip:
+            frame = cv2.flip(frame, 1)
+
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
         corners_list, ids, _ = detector.detectMarkers(gray)
-
-        # Get list of current detections
+        
         current_time = time.time()
+        
         detections = []
-        if ids is not None and len(corners_list) > 0:
-            for j, corners in enumerate(corners_list):
-                m_id = int(ids[j][0])
-                cx, cy = center_point(corners)
-                sz = marker_size_px(corners)
-                detections.append({
-                    'id': m_id,
-                    'center': (cx, cy),
-                    'size': sz,
-                    'corners': corners,
-                    'matched': False
-                })
+        if ids is not None:
+            for i, corners in enumerate(corners_list):
+                if int(ids[i][0]) == args.marker_id:
+                    detections.append({
+                        'id': int(ids[i][0]),
+                        'center': center_point(corners),
+                        'corners': corners,
+                        'size': marker_size_px(corners)
+                    })
 
-        # Match existing trackers to current detections
-        for tracker in tracked_markers:
-            best_det_idx = -1
-            min_dist = float('inf')
-            
-            # Spatial proximity threshold: 1.0x of marker size to prevent matching neighbors in dense grids
-            threshold = tracker.last_size * 1.0
-            
-            for idx, det in enumerate(detections):
-                if det['matched']:
-                    continue
-                if det['id'] != tracker.marker_id:
-                    continue
+        if not homography_is_stable:
+            cv2.putText(frame, "SEARCHING FOR PLANE...", (50, 50), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+
+            if len(detections) > 20: 
+                all_centers = np.array([d['center'] for d in detections])
                 
-                # Fast bounding box check to optimize performance for large grids (like 19x27)
-                dx = tracker.last_center[0] - det['center'][0]
-                if abs(dx) > threshold:
-                    continue
-                dy = tracker.last_center[1] - det['center'][1]
-                if abs(dy) > threshold:
-                    continue
-                    
-                dist = (dx*dx + dy*dy)**0.5
-                if dist < threshold and dist < min_dist:
-                    min_dist = dist
-                    best_det_idx = idx
-                    
-            if best_det_idx != -1:
-                detections[best_det_idx]['matched'] = True
-                tracker.update(
-                    detected=True,
-                    timestamp=current_time,
-                    center=detections[best_det_idx]['center'],
-                    size=detections[best_det_idx]['size']
-                )
-                detections[best_det_idx]['tracker'] = tracker
-            else:
-                tracker.update(detected=False, timestamp=current_time)
+                tl_idx = np.argmin(np.sum(all_centers, axis=1)) 
+                tr_idx = np.argmax(all_centers[:, 0] - all_centers[:, 1]) 
+                bl_idx = np.argmin(all_centers[:, 0] - all_centers[:, 1]) 
+                br_idx = np.argmax(np.sum(all_centers, axis=1)) 
 
-        # Create new trackers for unmatched detections
-        for det in detections:
-            if not det['matched']:
-                new_tracker = TrackedMarker(det['id'], det['center'], det['size'], current_time, window_s=2.0)
-                tracked_markers.append(new_tracker)
-                det['tracker'] = new_tracker
+                image_corners = np.array([
+                    detections[tl_idx]['center'],
+                    detections[tr_idx]['center'],
+                    detections[br_idx]['center'],
+                    detections[bl_idx]['center'],
+                ], dtype=np.float32)
 
-        # =================================================
-        # 🔥 VISUALIZATION FIX (IMPORTANT)
-        # Custom border colored based on 2s detection frequency
-        # =================================================
-        for det in detections:
-            tracker = det['tracker']
-            rate = tracker.detection_rate
-            
-            # Map rate (0.0 to 1.0) to color:
-            # 0.0 (Red: BGR 0,0,255) -> 0.5 (Yellow: BGR 0,255,255) -> 1.0 (Dark Green: BGR 0,128,0)
-            if rate < 0.5:
-                t = rate / 0.5
-                color = (0, int(255 * t), 255)
-            else:
-                t = (rate - 0.5) / 0.5
-                color = (0, int(255 * (1.0 - t) + 128 * t), int(255 * (1.0 - t)))
+                step = args.marker_size + args.marker_separation
+                world_corners = np.array([
+                    [0, 0],
+                    [(args.grid_cols - 1) * step, 0],
+                    [(args.grid_cols - 1) * step, (args.grid_rows - 1) * step],
+                    [0, (args.grid_rows - 1) * step]
+                ], dtype=np.float32)
 
-            # Draw custom border around the corners of the marker
-            c = det['corners'][0].astype(np.int32)
-            cv2.polylines(frame, [c.reshape((-1, 1, 2))], isClosed=True, color=color, thickness=2)
+                H_initial, _ = cv2.findHomography(world_corners, image_corners)
 
-        # =================================================
-        # 🔥 DRAW UNDETECTED TRACKERS IN RED (2s window)
-        # =================================================
-        for tracker in tracked_markers:
-            was_detected_now = tracker.history[-1][1] if tracker.history else False
-            if not was_detected_now:
-                cx, cy = tracker.last_center
-                sz = tracker.last_size
-                half_sz = sz / 2.0
-                c_proj = np.array([
-                    [cx - half_sz, cy - half_sz],
-                    [cx + half_sz, cy - half_sz],
-                    [cx + half_sz, cy + half_sz],
-                    [cx - half_sz, cy + half_sz]
-                ], dtype=np.int32)
-                
-                # Draw thin red border and cross for missed tracker
-                cv2.polylines(frame, [c_proj.reshape((-1, 1, 2))], isClosed=True, color=(0, 0, 255), thickness=1)
-                cv2.drawMarker(frame, (int(cx), int(cy)), (0, 0, 255), markerType=cv2.MARKER_CROSS, markerSize=10, thickness=1)
-
-        plane_frame = PlaneFrame(
-            frame_id=frame_id,
-            timestamp=current_time
-        )
-
-        # =================================================
-        # DETECTION VALIDATION & METRIC LOGGING
-        # =================================================
-
-        if tracked_markers:
-            for tracker in tracked_markers:
-                was_detected_now = tracker.history[-1][1] if tracker.history else False
-                
-                if was_detected_now:
-                    # Find the detection that matched this tracker
-                    matched_det = None
-                    for det in detections:
-                        if det.get('tracker') == tracker:
-                            matched_det = det
-                            break
-                    
-                    if matched_det is not None:
-                        corners = matched_det['corners']
-                        cx, cy = matched_det['center']
-                        size_px = matched_det['size']
-                        
-                        x1 = max(0, int(np.min(corners[0][:, 0])))
-                        y1 = max(0, int(np.min(corners[0][:, 1])))
-                        x2 = min(frame.shape[1] - 1, int(np.max(corners[0][:, 0])))
-                        y2 = min(frame.shape[0] - 1, int(np.max(corners[0][:, 1])))
-                        sharp = compute_sharpness(gray, x1, y1, x2, y2)
-                        
-                        frame_center = (frame.shape[1] // 2, frame.shape[0] // 2)
-                        dist_center = distance((cx, cy), frame_center)
-                        
-                        sample = PlaneSample(
-                            frame_id=frame_id,
-                            timestamp=current_time,
-                            marker_id=tracker.id,  # Use unique tracker ID
-                            detected=True,
-                            board_x_mm=float(tracker.start_center[0]),  # Stable grouping coordinate
-                            board_y_mm=float(tracker.start_center[1]),
-                            image_x_px=float(cx),
-                            image_y_px=float(cy),
-                            distance_from_center_px=dist_center,
-                            marker_size_px=size_px,
-                            sharpness=sharp,
-                            camera_distance_mm=0.0,
-                            pitch_deg=0.0,
-                            yaw_deg=0.0,
-                            roll_deg=0.0
-                        )
-                        plane_frame.add_sample(sample)
-                else:
-                    # Log undetected sample for this active tracker
-                    sample = PlaneSample(
-                        frame_id=frame_id,
-                        timestamp=current_time,
-                        marker_id=tracker.id,
-                        detected=False,
-                        board_x_mm=float(tracker.start_center[0]),
-                        board_y_mm=float(tracker.start_center[1]),
-                        image_x_px=0.0,
-                        image_y_px=0.0,
-                        distance_from_center_px=0.0,
-                        marker_size_px=0.0,
-                        sharpness=0.0,
-                        camera_distance_mm=0.0,
-                        pitch_deg=0.0,
-                        yaw_deg=0.0,
-                        roll_deg=0.0
+                if H_initial is not None:
+                    hypothetical_grid_mm = generate_hypothetical_grid(
+                        args.grid_rows, args.grid_cols, args.marker_size, args.marker_separation
                     )
-                    plane_frame.add_sample(sample)
-        else:
-            # If no trackers are active yet, log a dummy sample
-            sample = PlaneSample(
-                frame_id=frame_id,
-                timestamp=current_time,
-                marker_id=-1,
-                detected=False,
-                board_x_mm=0.0,
-                board_y_mm=0.0,
-                image_x_px=0.0,
-                image_y_px=0.0,
-                distance_from_center_px=0.0,
-                marker_size_px=0.0,
-                sharpness=0.0,
-                camera_distance_mm=0.0,
-                pitch_deg=0.0,
-                yaw_deg=0.0,
-                roll_deg=0.0
-            )
-            plane_frame.add_sample(sample)
+                    projected_grid_px = cv2.perspectiveTransform(hypothetical_grid_mm, H_initial)
+                    
+                    world_pts = []
+                    img_pts = []
 
-        # Remove trackers that haven't been detected at all in the last 2 seconds
-        tracked_markers = [t for t in tracked_markers if any(obs[1] for obs in t.history)]
+                    for i, p_proj in enumerate(projected_grid_px):
+                        p_proj_tuple = (p_proj[0][0], p_proj[0][1])
+                        
+                        min_dist = float('inf')
+                        best_det_idx = -1
+                        for j, det in enumerate(detections):
+                            dist = distance(p_proj_tuple, det['center'])
+                            if dist < min_dist:
+                                min_dist = dist
+                                best_det_idx = j
+                        
+                        if best_det_idx != -1 and min_dist < detections[best_det_idx]['size']:
+                            world_pts.append(hypothetical_grid_mm[i][0])
+                            img_pts.append(detections[best_det_idx]['center'])
+                    
+                    if len(img_pts) > 10:
+                        H, _ = cv2.findHomography(np.array(world_pts), np.array(img_pts), cv2.RANSAC, 5.0)
+                        homography_is_stable = True
+                        print("Homography locked.")
 
-        # =================================================
-        # COLLECT
-        # =================================================
+        else: 
+            plane_frame = PlaneFrame(frame_id=frame_id, timestamp=current_time)
+            
+            projected_grid_px = cv2.perspectiveTransform(hypothetical_grid_mm, H)
+            
+            for i, p_proj in enumerate(projected_grid_px):
+                p_proj_tuple = (p_proj[0][0], p_proj[0][1])
+                world_x, world_y = hypothetical_grid_mm[i][0]
 
-        if len(plane_frame.samples) > 0:
-            collector.add_frame(plane_frame)
+                min_dist = float('inf')
+                best_det = None
+                for det in detections:
+                    dist = distance(p_proj_tuple, det['center'])
+                    if dist < min_dist:
+                        min_dist = dist
+                        best_det = det
+                
+                sample_detected = False
+                sharpness = 0.0
+                marker_px_size = 0.0
+                cx, cy = p_proj_tuple
+                
+                if best_det is not None and min_dist < best_det['size'] * 0.75:
+                    sample_detected = True
+                    cv2.circle(frame, (int(p_proj_tuple[0]), int(p_proj_tuple[1])), 5, (0, 255, 0), -1)
+                    
+                    corners = best_det['corners']
+                    marker_px_size = best_det['size']
+                    cx, cy = best_det['center']
+                    
+                    x1, y1 = np.min(corners[0], axis=0).astype(int)
+                    x2, y2 = np.max(corners[0], axis=0).astype(int)
+                    sharpness = compute_sharpness(gray, max(0, x1), max(0, y1), 
+                                                  min(gray.shape[1], x2), min(gray.shape[0], y2))
+                else:
+                    cv2.circle(frame, (int(p_proj_tuple[0]), int(p_proj_tuple[1])), 5, (0, 0, 255), 1)
 
-        frame_id += 1
-
-        # =================================================
-        # GUI
-        # =================================================
+                sample = PlaneSample(
+                    frame_id=frame_id,
+                    timestamp=current_time,
+                    marker_id=i, 
+                    detected=sample_detected,
+                    board_x_mm=float(world_x),
+                    board_y_mm=float(world_y),
+                    image_x_px=float(cx),
+                    image_y_px=float(cy),
+                    distance_from_center_px=distance((cx, cy), (frame.shape[1]/2, frame.shape[0]/2)),
+                    marker_size_px=marker_px_size,
+                    sharpness=sharpness
+                )
+                plane_frame.add_sample(sample)
+                
+            if len(plane_frame.samples) > 0:
+                collector.add_frame(plane_frame)
 
         cv2.imshow("Plane Quality", frame)
-
         key = cv2.waitKey(1) & 0xFF
         if key == 27:
             break
-
-    # =====================================================
-    # ANALYSIS
-    # =====================================================
+        
+        frame_id += 1
 
     print("\nAnalyzing...")
-
     if len(collector.get_frames()) == 0:
         print("ERROR: No frames collected")
-        camera.release()
-        cv2.destroyAllWindows()
-        return
-
-    stats = analyzer.analyze(collector)
-
-    if not stats:
-        print("ERROR: Analyzer returned empty stats")
-        camera.release()
-        cv2.destroyAllWindows()
-        return
-
-    reporter.print_summary(stats)
-    reporter.save_csv(stats, "plane_quality.csv")
-    reporter.save_json(stats, "plane_quality.json")
-    save_markdown_grid(stats, "plane_quality_grid.md")
-
-    # Plotting and PNG heatmaps are disabled as requested
-    # heatmap.plot(stats, mode="detection")
-    # heatmap.plot(stats, mode="sharpness")
-    # heatmap.plot(stats, mode="size")
-    # heatmap.save_png(stats, "heatmap_detection.png", "detection")
-    # heatmap.save_png(stats, "heatmap_sharpness.png", "sharpness")
+    else:
+        stats = analyzer.analyze(collector)
+        if not stats or not stats.statistics:
+            print("ERROR: Analyzer returned empty stats")
+        else:
+            reporter.print_summary(stats)
+            reporter.save_csv(stats, "plane_quality.csv")
+            reporter.save_json(stats, "plane_quality.json")
+            save_markdown_grid(stats, args, "plane_quality_grid.md")
 
     camera.release()
     cv2.destroyAllWindows()
