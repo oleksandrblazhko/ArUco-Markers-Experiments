@@ -31,6 +31,19 @@ def generate_hypothetical_grid(rows, cols, marker_size_mm, separation_mm):
     return np.array(world_points, dtype=np.float32).reshape(-1, 1, 2)
 
 
+def rate_to_color(rate):
+    """
+    Maps a detection rate (0.0 to 1.0) to a BGR color in a Red -> Yellow -> Green gradient.
+    """
+    if rate < 0.5:
+        # Interpolate from Red (0,0,255) to Yellow (0,255,255)
+        t = rate * 2
+        return (0, int(255 * t), 255)
+    else:
+        # Interpolate from Yellow (0,255,255) to Green (0,255,0)
+        t = (rate - 0.5) * 2
+        return (0, 255, int(255 * (1 - t)))
+
 
 def compute_sharpness(gray, x1, y1, x2, y2):
     roi = gray[y1:y2, x1:x2]
@@ -145,6 +158,8 @@ def main():
     H = None
     homography_is_stable = False
     hypothetical_grid_mm = None
+    
+    realtime_stats = [{'hits': 0, 'misses': 0} for _ in range(args.grid_rows * args.grid_cols)]
 
     print("Press ESC to stop. Looking for marker plane...")
 
@@ -255,7 +270,7 @@ def main():
                 
                 if best_det is not None and min_dist < best_det['size'] * 0.75:
                     sample_detected = True
-                    cv2.circle(frame, (int(p_proj_tuple[0]), int(p_proj_tuple[1])), 5, (0, 255, 0), -1)
+                    realtime_stats[i]['hits'] += 1
                     
                     corners = best_det['corners']
                     marker_px_size = best_det['size']
@@ -266,7 +281,15 @@ def main():
                     sharpness = compute_sharpness(gray, max(0, x1), max(0, y1), 
                                                   min(gray.shape[1], x2), min(gray.shape[0], y2))
                 else:
-                    cv2.circle(frame, (int(p_proj_tuple[0]), int(p_proj_tuple[1])), 5, (0, 0, 255), 1)
+                    realtime_stats[i]['misses'] += 1
+
+                total_samples = realtime_stats[i]['hits'] + realtime_stats[i]['misses']
+                rate = 0.0
+                if total_samples > 0:
+                    rate = realtime_stats[i]['hits'] / total_samples
+                
+                color = rate_to_color(rate)
+                cv2.circle(frame, (int(p_proj_tuple[0]), int(p_proj_tuple[1])), 5, color, -1)
 
                 sample = PlaneSample(
                     frame_id=frame_id,
